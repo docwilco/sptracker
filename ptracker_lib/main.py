@@ -905,7 +905,7 @@ class PersonalHotlaps:
                             self.dataBase.registerLap(trackChecksum=trackid,
                                                       carChecksum=carid,
                                                       acVersion=acVersion,
-                                                      steamGuid=guidhasher(guid),
+                                                      steamGuid=guid,
                                                       playerName=playerName,
                                                       playerIsAI=isAI,
                                                       lapHistory=lapHistory,
