@@ -28,6 +28,10 @@ NEYS has since said on [RaceDepartment.com](https://www.racedepartment.com/threa
 > in the AC mods went also down. If you want to take over the project I am open to reference the
 > fork in the main page here on RD, such that users are guided to your page. 
 
+So I have setup a [GitHub repo](https://github.com/docwilco/sptracker) to work
+on this project, and allow others to easily collaborate. Feel free to file
+issues and do pull requests.
+
 # Getting started
 
 `create_release.py` does most of the work of fetching and installing dependencies
