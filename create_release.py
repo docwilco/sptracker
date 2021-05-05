@@ -28,10 +28,10 @@ test_release_process = False
 
 # Only stracker comes in Linux and Windows flavors, so don't put
 # OS on the others for now.
-build_ptracker = True
-build_stracker_windows = True
-build_stracker_linux = True
-build_stracker_packager = True
+build_ptracker = False
+build_stracker_windows = False
+build_stracker_linux = False
+build_stracker_packager = False
 
 if "--test_release_process" in sys.argv:
     sys.argv.remove("--test_release_process")
