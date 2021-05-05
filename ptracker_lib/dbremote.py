@@ -383,10 +383,16 @@ class RemoteBackend:
                     gripLevel, collisionsCar, collisionsEnv, cuts, ballast):
         acdebug("remotedb::registerLap %s", steamGuid)
         if steamGuid is None:
+            acdebug("remotedb::registerLap steamGuid is None")
             return
         if self.client is None or not self.client.isOnline():
+            if self.client is None:
+                acdebug("remotedb::registerLap self.client is None")
+            elif not self.client.isOnline():
+                acdebug("remotedb::registerLap self.client.isOnline() == False")
             return
         if self.client.guid != steamGuid:
+            acdebug("remotedb::registerLap self.client.guid[%s] != steamGuid[%s]", self.client.guid, steamGuid)
             # only register laps by the client owner
             return
         if not self.registered:
