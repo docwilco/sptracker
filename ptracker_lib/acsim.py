@@ -95,15 +95,15 @@ try:
 
         def logCall(self, funcName, args, kw, result):
             try:
-                k = pickle.dumps((funcName, args, kw))
+                k = pickle.dumps((funcName, args, kw), protocol=3)
             except:
-                k = pickle.dumps((funcName, None, None))
-            r = pickle.dumps(result)
+                k = pickle.dumps((funcName, None, None), protocol=3)
+            r = pickle.dumps(result, protocol=3)
             self.frames[-1].function_calls[k] = r
 
         def newCallback(self, callback, args):
             if not self.file is None:
-                s = pickle.dumps(self.frames[-1])
+                s = pickle.dumps(self.frames[-1], protocol=3)
                 l = len(s)
                 self.file.write(struct.pack('i', l))
                 self.file.write(s)
@@ -135,14 +135,14 @@ except ImportError:
         def __call__(self, *args, **kw):
             f = self.parent.frame
             try:
-                k = pickle.dumps((self.funcName, args, kw))
+                k = pickle.dumps((self.funcName, args, kw), protocol=3)
             except:
-                k = pickle.dumps((self.funcName, None, None))
+                k = pickle.dumps((self.funcName, None, None), protocol=3)
             try:
                 r = pickle.loads(f.function_calls[k])
             except KeyError:
                 try:
-                    k = pickle.dumps((self.funcName, None, None))
+                    k = pickle.dumps((self.funcName, None, None), protocol=3)
                     r = pickle.loads(f.function_calls[k])
                 except KeyError:
                     if self.funcName in self.parent.wrappedFunctions and self.parent.wrappedFunctions[self.funcName] is None:
