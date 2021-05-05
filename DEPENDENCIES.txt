@@ -1,6 +1,0 @@
-PACKAGE DEPENDENCIES
---------------------
-
-1. Python Interpreter
-2. `virtualenv` Python modules
-3. NSIS: https://nsis.sourceforge.io/Download
