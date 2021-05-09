@@ -548,6 +548,27 @@ class StrackerPublicBase:
         cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'
         return json.dumps(output)
 
+    def track_data(self, track_id):
+        td = self.trackAndCarDetails()['tracks']
+        td = dict(map(lambda x: (x['acname'], x), td))
+        self.trackmap(track=track_id, curr_url=None)
+        sections = []
+        if track_id in td:
+            if td[track_id]['mapdata']:
+                mapdata = pickle.loads(td[track_id]['mapdata'])
+                if 'sections' in mapdata:
+                    length = td[track_id]['length']
+                    for section in mapdata['sections']:
+                        sections.append({
+                            'text': section['text'],
+                            'in': section['in'] * length,
+                            'out': section['out'] * length,
+                        })
+        else:
+            raise cherrypy.HTTPError(404)
+        cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'
+        return json.dumps({'sections': sections})
+
     def ltcomparison_svg(self, lapIds, labels=None, curr_url=None):
         if not config.config.HTTP_CONFIG.enable_svg_generation:
             return ""
@@ -630,11 +651,8 @@ class StrackerPublicBase:
                 if 'sections' in mapdata:
                     section_labels = []
                     for section in mapdata['sections']:
-                        #midpoint = (section['infloat'] + section['outfloat']) / 2
-                        #midpoint *= length
-                        #section_labels.append(dict(label=section['text'], value=midpoint))
-                        section_labels.append(dict(label=section['text'] + " in", value=section['infloat'] * length))
-                        section_labels.append(dict(label=section['text'] + " out", value=section['outfloat'] * length))
+                        section_labels.append(dict(label=section['text'] + " in", value=section['in'] * length))
+                        section_labels.append(dict(label=section['text'] + " out", value=section['out'] * length))
                     line_chart.x_labels = section_labels
         precision = max(1, min(10, int(1600/maxN)))
         line_chart.interpolation_precision = precision

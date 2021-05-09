@@ -149,11 +149,11 @@ def read_ui_file(filename, file_ptr, odata):
             # so we just infinite loop until that happens
             try:
                 section = 'SECTION_%d' % section_num
-                sections.append(dict(
-                    text=cp[section]['TEXT'],
-                    infloat=cp.getfloat(section, 'IN'),
-                    outfloat=cp.getfloat(section, 'OUT')
-                ))
+                sections.append({
+                    'text': cp[section]['TEXT'],
+                    'in': cp.getfloat(section, 'IN'),
+                    'out': cp.getfloat(section, 'OUT')
+                })
             except:
                 break
             section_num += 1

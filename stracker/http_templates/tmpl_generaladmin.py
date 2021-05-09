@@ -59,9 +59,7 @@ function general_admin_remove(column, item)
                         file called stracker-package.zip. With the button below,
                         you can send this file to the server where the information
                         will be stored in the database.<br>
-                        The process will not overwrite UI data already stored.
-                        If you want data to be overwritten, remove it before
-                        uploading stracker-package.zip.
+                        The process WILL update UI data already stored.
                     </div>
                 </div>
             </div>

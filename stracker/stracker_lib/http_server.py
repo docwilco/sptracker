@@ -179,6 +179,7 @@ class StrackerPublic(http_server_base.StrackerPublicBase):
     trackmap = cherrypy.expose(add_url(cherrypy.tools.caching(delay=10)(http_server_base.StrackerPublicBase.trackmap)))
 
     chart_data = cherrypy.expose(cherrypy.tools.caching(delay=3600)(http_server_base.StrackerPublicBase.chart_data))
+    track_data = cherrypy.expose(cherrypy.tools.caching(delay=3600)(http_server_base.StrackerPublicBase.track_data))
 
     def isAdmin(self):
         if (config.config.HTTP_CONFIG.admin_username != "" and

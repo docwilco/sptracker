@@ -32,9 +32,27 @@ const chart = Highcharts.chart('velocity-over-distance', {
     },
 });
 
+function addSections(trackData) {
+    plotBands = [];
+    trackData.sections.forEach(section => {
+        plotBands.push({
+            from: section.in,
+            to: section.out,
+            color: '#eeeeee',
+            label: {
+                text: section.text,
+                rotation: 90,
+                textAlign: 'left'
+            }
+        })
+    })
+    chart.xAxis[0].update({ plotBands: plotBands });
+}
+
 function drawCharts(results) {
     let car = null;
-    let track = null;
+    let trackId = null;
+    let trackName = null;
     let carsame = true;
     let tracksame = true;
     let title;
@@ -48,24 +66,30 @@ function drawCharts(results) {
     });
     lapData.forEach(lap => {
         if (car === null) {
-            car = lap['car'];
+            car = lap.car;
         } else {
-            if (car != lap['car']) {
+            if (car != lap.car) {
                 carsame = false;
             }
         }
-        if (track === null) {
-            track = lap['track']['name'];
+        if (trackId === null) {
+            trackId = lap.track.id;
+            trackName = lap.track.name;
         } else {
-            if (track != lap['track']['name']) {
+            if (trackId != lap.track.id) {
                 tracksame = false;
             }
         }
     });
-    if (tracksame && carsame) {
-        title = `Lap Comparison ${car} @ ${track}`;
-    } else if (tracksame) {
-        title = `Lap Comparison on {@track}`;
+    if (tracksame) {
+        if (carsame) {
+            title = `Lap Comparison ${car} @ ${trackName}`;
+        } else {
+            title = `Lap Comparison on ${trackName}`;
+        }
+        fetch(`track_data?track_id=${trackId}`)
+            .then(response => response.json())
+            .then(trackData => addSections(trackData));
     } else {
         title = "Lap Comparison (warning: different tracks!)";
     }
@@ -83,7 +107,6 @@ function drawCharts(results) {
 }
 
 const lapFetches = lapIDs.map(lapID =>
-    //fetch(`https://stracker.drwil.co/chart_data?lapid=${lapID}`)
     fetch(`chart_data?lapid=${lapID}`)
     .then(response => response.json())
 );
