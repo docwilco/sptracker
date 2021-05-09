@@ -141,6 +141,12 @@ class StrackerPublic(http_server_base.StrackerPublicBase):
             'tools.expires.secs'  : 3600*24*7,
             'tools.staticdir.on' : True,
             'tools.staticdir.dir' : os.path.abspath(os.path.join(http_server_base.static_base_dir, "http_static", "pygal")),
+        },
+        '/stracker' : {
+#            'tools.expires.on'    : True,
+#            'tools.expires.secs'  : 3600*24*7,
+            'tools.staticdir.on' : True,
+            'tools.staticdir.dir' : os.path.abspath(os.path.join(http_server_base.static_base_dir, "http_static", "stracker")),
         }
     }
     def __init__(self, rootpage="/"):
@@ -171,6 +177,8 @@ class StrackerPublic(http_server_base.StrackerPublicBase):
     ltcomparisonmap_svg = cherrypy.expose(add_url(cherrypy.tools.caching(delay=300)(http_server_base.StrackerPublicBase.ltcomparisonmap_svg)))
     carbadge = cherrypy.expose(add_url(cherrypy.tools.caching(delay=10)(http_server_base.StrackerPublicBase.carbadge)))
     trackmap = cherrypy.expose(add_url(cherrypy.tools.caching(delay=10)(http_server_base.StrackerPublicBase.trackmap)))
+
+    chart_data = cherrypy.expose(cherrypy.tools.caching(delay=3600)(http_server_base.StrackerPublicBase.chart_data))
 
     def isAdmin(self):
         if (config.config.HTTP_CONFIG.admin_username != "" and

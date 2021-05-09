@@ -433,6 +433,26 @@ function applySelections() {
 lapDetailsTableTemplate = SimpleTemplate("""
 % from ptracker_lib.helpers import *
 % from http_templates.tmpl_helpers import car_tmpl
+% import simplejson as json
+
+<!--
+Highcharts is a nice interactive front-end charting library.
+The data module is needed for loading the series.
+The exporting module allows users to snag images and view fullscreen.
+-->
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/data.js"></script>
+<script src="https://code.highcharts.com/modules/series-label.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+
+<!--
+Papa Parse is for parsing CSV, since we want to have lap data for graphs
+be static on a per lap basis, for caching.
+-->
+<script src="https://rawgit.com/mholt/PapaParse/master/papaparse.min.js"></script>
+
 <div class="container">
     <div class="row page-header">
         <div class="col-md-6"><img src="/img/banner.png" title="Logo Track" class="ACimg"></div>
@@ -736,6 +756,21 @@ function updateComparison() {
     return false;
 }
     </script>
+    <div class="row">
+        <hr>
+        <div class="col-md-8 col-md-offset-0">
+            <div>
+                <div id="velocity-over-distance" style="width:100%; height:500px;"></div>
+                <script>
+                    const velocityOverDistanceParameters = {
+                        lapIDs: [ {{",".join(map(str, lapIds))}} ],
+                        labels: {{! json.dumps(legends)}}
+                    };
+                </script>
+                <script src="/stracker/js/velocity_over_distance.js"></script>
+            </div>
+        </div>
+    </div>
     <div class="row">
         <hr>
         <div class="col-md-8 col-md-offset-0">

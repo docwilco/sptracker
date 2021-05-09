@@ -45,6 +45,7 @@ from pygal.style import LightSolarizedStyle,LightStyle,CleanStyle
 import simplejson as json
 
 import bottle
+import cherrypy
 
 # avoid css system override (can be caused by installing Dreamweaver, http://stackoverflow.com/questions/22839278/python-built-in-server-not-loading-css)
 import mimetypes
@@ -514,13 +515,50 @@ class StrackerPublicBase:
 
         return line_chart.render()
 
+    def chart_data(self, lapid):
+        lapid = int(lapid)
+        ci = db.comparisonInfo([lapid],__sync=True)()
+        if len(ci) == 0:
+            raise cherrypy.HTTPError(404)
+        length = ci[lapid]['length']
+        st, wp, vel, nsp = decompress(ci[lapid]['historyinfo'])
+        # Every item in vel is velocities in m/s for 3 axes, convert
+        # to a single velocity in km/h
+        v = map(lambda x: 3.6*math.sqrt(x[0]**2+x[1]**2+x[2]**2), vel)
+        if length is not None:
+            # Not sure why the min/max is being done here. Obviously
+            # to clamp the distance between 0 and end of track, but
+            # unsure when that would happen...
+            # nsp = list(map(lambda x: min(l, max(0, x*l)), nsp))
+            # Normalized Spline Position is a float in range 0.0 to 1.0
+            # convert to meters.
+            nsp = list(map(lambda x: x * length, nsp))
+        output = {
+            'lap_id': lapid,
+            'track': {
+                'id': ci[lapid]['track'],
+                'name': ci[lapid]['uitrack'],
+                'length': length,
+            },
+            'car': ci[lapid]['uicar'],
+            'player': ci[lapid]['player'],
+            'laptime': format_time(ci[lapid]['laptime'], False),
+            'velocities': list(zip(nsp, v))
+        }
+        cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'
+        return json.dumps(output)
+
     def ltcomparison_svg(self, lapIds, labels=None, curr_url=None):
         if not config.config.HTTP_CONFIG.enable_svg_generation:
             return ""
         lapIds = lapIds.strip().split(",")
         lapIds = list(map(lambda x: int(x), lapIds))
         if not labels is None:
+            # dict will deduplicate, last label for same lap wins
             labels = dict(zip(lapIds,labels.split(",")))
+        # dict again deduplicates, zip with array of None just to be
+        # able to make the dict. Better to use, IMO:
+        # lapIds = list(set(map(lambda x: int(x), lapIds))) & sort()
         lapIds = OrderedDict( zip(lapIds, [None]*len(lapIds)) ).keys()
         ci = db.comparisonInfo(lapIds,__sync=True)()
         track = None
