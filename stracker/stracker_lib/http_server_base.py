@@ -86,9 +86,6 @@ pygalConfig = Config(style=CleanStyle,
                      disable_xml_declaration=True)
 db = None
 
-def decimal_round(number, decimals=0):
-    return Math.round(number * 10 ** decimals) / 10
-
 class StrackerPublicBase:
     def __init__(self):
         self.rootpage = '/'
@@ -528,7 +525,7 @@ class StrackerPublicBase:
         st, wp, vel, nsp = decompress(ci[lapid]['historyinfo'])
         # Every item in vel is velocities in m/s for 3 axes, convert
         # to a single velocity in km/h, rounded to 1 decimal
-        v = map(lambda x: decimal_round(3.6 * math.sqrt(x[0]**2+x[1]**2+x[2]**2), 1), vel)
+        v = map(lambda x: round(3.6 * math.sqrt(x[0]**2+x[1]**2+x[2]**2), 1), vel)
         if length is not None:
             # Not sure why the min/max is being done here. Obviously
             # to clamp the distance between 0 and end of track, but
@@ -536,7 +533,7 @@ class StrackerPublicBase:
             # nsp = list(map(lambda x: min(l, max(0, x*l)), nsp))
             # Normalized Spline Position is a float in range 0.0 to 1.0
             # convert to meters.
-            nsp = list(map(lambda x: decimal_round(x * length, 1), nsp))
+            nsp = list(map(lambda x: round(x * length, 1), nsp))
         output = {
             'lap_id': lapid,
             'track': {
@@ -562,8 +559,8 @@ class StrackerPublicBase:
             # looks like Y-axis in AC is height, so we use Z-axis in AC
             # as Y-axis in our map. This is in meters, so rounding to 
             # 1 decimal is more than enough
-            x = [max(0, min(width, decimal_round((pos[0] + offsetx) * scale, 1))) for pos in wp]
-            y = [max(0, min(height, decimal_round((pos[2] + offsetz) * scale, 1))) for pos in wp]
+            x = [max(0, min(width, round((pos[0] + offsetx) * scale, 1))) for pos in wp]
+            y = [max(0, min(height, round((pos[2] + offsetz) * scale, 1))) for pos in wp]
             output['positions'] = list(zip(x, y))
 
         cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'
@@ -587,8 +584,8 @@ class StrackerPublicBase:
                     for section in mapdata['sections']:
                         sections.append({
                             'text': section['text'],
-                            'in': decimal_round(section['in'] * length),
-                            'out': decimal_round(section['out'] * length),
+                            'in': round(section['in'] * length),
+                            'out': round(section['out'] * length),
                         })
                 output['sections'] = sections
         else:
