@@ -1,7 +1,7 @@
 const zip = (a, b) => a.map((k, i) => [k, b[i]]);
 
-let lapIDs = velocityOverDistanceParameters['lapIDs'];
-let labels = velocityOverDistanceParameters['labels'];
+let lapIDs = velocityOverDistanceParameters.lapIDs;
+let labels = velocityOverDistanceParameters.labels;
 if (labels !== null) {
     // fromEntries will cause lapID deduplication,
     // last label for a lapID wins. 
@@ -11,6 +11,32 @@ if (labels !== null) {
 }
 // now dedup the lapIDs
 lapIDs = Array.from(new Set(lapIDs));
+let trackData = null;
+let trackImage = null;
+
+function drawTrackImage() {
+    if (trackData === null) {
+        return;
+    }
+    // left/right/top/bottom x/y
+    lx = trackMap.xAxis[0].toPixels(0);
+    rx = trackMap.xAxis[0].toPixels(trackData.map.width);
+    ty = trackMap.yAxis[0].toPixels(0);
+    by = trackMap.yAxis[0].toPixels(trackData.map.height);
+    if (trackImage !== null) {
+        let oldTrackImage = trackImage;
+        setTimeout(() => oldTrackImage.destroy());
+    }
+    console.log();
+    trackImage = trackMap.renderer.image(`https://stracker.drwil.co/trackmap?track=${trackData.id}`,
+        lx,
+        ty,
+        rx - lx,
+        by - ty
+    );
+    trackImage.clip(trackMap.renderer.clipRect(trackMap.plotLeft, trackMap.plotTop, trackMap.plotWidth, trackMap.plotHeight));
+    trackImage.add();
+}
 
 const chart = Highcharts.chart('velocity-over-distance', {
     chart: {
@@ -30,9 +56,68 @@ const chart = Highcharts.chart('velocity-over-distance', {
             text: 'Velocity [km/h]'
         }
     },
+    plotOptions: {
+        series: {
+            point: {
+                events: {
+                    mouseOver: function(e) {
+                        e.trigger = "hoverSync";
+                        trackMap.series[e.target.series.index].points[e.target.index].onMouseOver(e);
+                    }
+                }
+            }
+        }
+    },
+    tooltip: {
+        headerFormat: '@{point.x} m<br>',
+        valueSuffix: ' km/h',
+    }
 });
 
-function addSections(trackData) {
+const trackMap = Highcharts.mapChart('track-map', {
+    chart: {
+        events: {
+            redraw: drawTrackImage
+        },
+
+    },
+    title: {
+        // Setting to null is the only way to remove the title
+        text: null,
+    },
+    mapNavigation: {
+        enabled: true,
+    },
+    plotOptions: {
+        mappoint: {
+            showInLegend: false,
+            marker: {
+                enabled: false,
+            }
+        },
+        mapline: {
+            enableMouseTracking: false,
+            lineWidth: 2,
+        }
+    },
+    tooltip: {
+        pointFormatter: function(tooltip) {
+            let speed = chart.series[this.series.index].points[this.index].y;
+            return `${speed} km/h`;
+        }
+    },
+    xAxis: {
+        // Allow for decently close zoom
+        minRange: 100,
+    },
+    yAxis: {
+        minRange: 100,
+    },
+
+});
+
+function addTrackData(data) {
+    trackData = data;
     plotBands = [];
     trackData.sections.forEach(section => {
         plotBands.push({
@@ -46,7 +131,22 @@ function addSections(trackData) {
             }
         })
     })
-    chart.xAxis[0].update({ plotBands: plotBands });
+    chart.xAxis[0].update({
+        plotBands: plotBands
+    });
+    // make sure the entire map is shown
+    trackMap.addSeries({
+        type: 'mappoint',
+        name: 'extremes',
+        enableMouseTracking: false,
+        data: [{
+            x: 0,
+            y: 0
+        }, {
+            x: trackData.map.width,
+            y: trackData.map.height
+        }]
+    });
 }
 
 function drawCharts(results) {
@@ -89,21 +189,58 @@ function drawCharts(results) {
         }
         fetch(`track_data?track_id=${trackId}`)
             .then(response => response.json())
-            .then(trackData => addSections(trackData));
+            .then(trackData => addTrackData(trackData));
     } else {
         title = "Lap Comparison (warning: different tracks!)";
     }
     let series = [];
-    lapData.forEach(lap => {
+    let mapPointSeries = [];
+    let mapLineSeries = [];
+    lapData.forEach((lap, index) => {
         let suffix = carsame ? "" : lap.car;
         let label = `${lap.prefix}${lap.laptime} by ${lap.player}${suffix}`;
-        series.push({ name: label, data: lap.velocities });
-    })
+        series.push({
+            name: label,
+            data: lap.velocities
+        });
+        let positions = [];
+        // SVG lines start with M x y (move to x,y), and then have L x y (line to x,y)
+        // for each segment. So we prime with an M, then add x y L for each point,
+        // and strip the final L.
+        let path = ['M'];
+        lap.positions.forEach(pos => {
+            positions.push({ x: pos[0], y: pos[1] });
+            path.push(pos[0]);
+            path.push(pos[1]);
+            path.push('L');
+        });
+        // strip final L 
+        path.pop();
+        mapPointSeries.push({
+            type: 'mappoint',
+            name: label,
+            data: positions
+        });
+        mapLineSeries.push({
+            type: 'mapline',
+            name: label,
+            color: chart.options.colors[index],
+            data: [{
+                path: path
+            }]
+        })
+    });
+    lapData.forEach(lap => {});
     chart.update({
-        title: { text: title },
+        title: {
+            text: title
+        },
         series: series
     }, true, true);
-
+    let mapSeries = mapPointSeries.concat(mapLineSeries);
+    trackMap.update({
+        series: mapSeries
+    }, true, true);
 }
 
 const lapFetches = lapIDs.map(lapID =>

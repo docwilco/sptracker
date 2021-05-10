@@ -86,6 +86,9 @@ pygalConfig = Config(style=CleanStyle,
                      disable_xml_declaration=True)
 db = None
 
+def decimal_round(number, decimals=0):
+    return Math.round(number * 10 ** decimals) / 10
+
 class StrackerPublicBase:
     def __init__(self):
         self.rootpage = '/'
@@ -521,10 +524,11 @@ class StrackerPublicBase:
         if len(ci) == 0:
             raise cherrypy.HTTPError(404)
         length = ci[lapid]['length']
+        track_id = ci[lapid]['track']
         st, wp, vel, nsp = decompress(ci[lapid]['historyinfo'])
         # Every item in vel is velocities in m/s for 3 axes, convert
-        # to a single velocity in km/h
-        v = map(lambda x: 3.6*math.sqrt(x[0]**2+x[1]**2+x[2]**2), vel)
+        # to a single velocity in km/h, rounded to 1 decimal
+        v = map(lambda x: decimal_round(3.6 * math.sqrt(x[0]**2+x[1]**2+x[2]**2), 1), vel)
         if length is not None:
             # Not sure why the min/max is being done here. Obviously
             # to clamp the distance between 0 and end of track, but
@@ -532,19 +536,36 @@ class StrackerPublicBase:
             # nsp = list(map(lambda x: min(l, max(0, x*l)), nsp))
             # Normalized Spline Position is a float in range 0.0 to 1.0
             # convert to meters.
-            nsp = list(map(lambda x: x * length, nsp))
+            nsp = list(map(lambda x: decimal_round(x * length, 1), nsp))
         output = {
             'lap_id': lapid,
             'track': {
-                'id': ci[lapid]['track'],
+                'id': track_id,
                 'name': ci[lapid]['uitrack'],
                 'length': length,
             },
             'car': ci[lapid]['uicar'],
             'player': ci[lapid]['player'],
             'laptime': format_time(ci[lapid]['laptime'], False),
-            'velocities': list(zip(nsp, v))
+            'velocities': list(zip(nsp, v)),
         }
+        td = self.trackAndCarDetails()['tracks']
+        td = dict(map(lambda x: (x['acname'], x), td))
+        self.trackmap(track=track_id, curr_url=None)
+        if track_id in td and td[track_id]['mapdata']:
+            mapdata = pickle.loads(td[track_id]['mapdata'])
+            scale = 1./float(mapdata['ini']['scale'])
+            width = float(mapdata['ini']['width'])
+            height = float(mapdata['ini']['height'])
+            offsetx = float(mapdata['ini']['xoffset'])
+            offsetz = float(mapdata['ini']['zoffset'])
+            # looks like Y-axis in AC is height, so we use Z-axis in AC
+            # as Y-axis in our map. This is in meters, so rounding to 
+            # 1 decimal is more than enough
+            x = [max(0, min(width, decimal_round((pos[0] + offsetx) * scale, 1))) for pos in wp]
+            y = [max(0, min(height, decimal_round((pos[2] + offsetz) * scale, 1))) for pos in wp]
+            output['positions'] = list(zip(x, y))
+
         cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'
         return json.dumps(output)
 
@@ -552,22 +573,28 @@ class StrackerPublicBase:
         td = self.trackAndCarDetails()['tracks']
         td = dict(map(lambda x: (x['acname'], x), td))
         self.trackmap(track=track_id, curr_url=None)
+        output = {'id': track_id}
         sections = []
         if track_id in td:
             if td[track_id]['mapdata']:
                 mapdata = pickle.loads(td[track_id]['mapdata'])
+                output['map'] = {
+                    'width': float(mapdata['ini']['width']),
+                    'height': float(mapdata['ini']['height']),
+                }
                 if 'sections' in mapdata:
                     length = td[track_id]['length']
                     for section in mapdata['sections']:
                         sections.append({
                             'text': section['text'],
-                            'in': section['in'] * length,
-                            'out': section['out'] * length,
+                            'in': decimal_round(section['in'] * length),
+                            'out': decimal_round(section['out'] * length),
                         })
+                output['sections'] = sections
         else:
             raise cherrypy.HTTPError(404)
         cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'
-        return json.dumps({'sections': sections})
+        return json.dumps(output)
 
     def ltcomparison_svg(self, lapIds, labels=None, curr_url=None):
         if not config.config.HTTP_CONFIG.enable_svg_generation:
