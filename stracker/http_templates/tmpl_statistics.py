@@ -27,6 +27,13 @@ statisticsTemplate = SimpleTemplate("""
 % from ptracker_lib.helpers import isProMode, format_time_ms, format_datetime, unixtime2datetime
 % from http_templates.tmpl_helpers import car_tmpl
 
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/data.js"></script>
+<script src="https://code.highcharts.com/modules/sunburst.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+
 <script>
 function toggleCollapse(e, self) {
     var $e = $(e);
@@ -214,18 +221,10 @@ function invalidateLaps() {
     </div>
     <div class="row">
         <div class="col-md-6">
-            <div>
-                {{!http_server.serverstats_svg()}}
-            </div>
-            <div>
-                {{!http_server.lapspertrack_svg()}}
-            </div>
-            <div>
-                {{!http_server.lapspercar_svg()}}
-            </div>
-            <div>
-                {{!http_server.lapspercombo_svg()}}
-            </div>
+            <figure class="highcharts-figure">
+                <div id="server-usage"></div>
+            </figure>
+            <script src="/stracker/js/server_usage.js"></script>
         </div>
         <div class="col-md-6">
 % def entry(key, conv=str):
@@ -273,6 +272,12 @@ function invalidateLaps() {
 % end
             </table>
         </div>
+    </div>
+    <div class="row">
+        <figure class="highcharts-figure">
+            <div id="track-car-usage"></div>
+        </figure>
+        <script src="/stracker/js/track_car_usage.js"></script>
     </div>
 </div>
 """)

@@ -447,6 +447,28 @@ class StrackerPublicBase:
         pie_chart.value_formatter = lambda x, valueToItem=valueToItem: "%s: %.1f%%" % (valueToItem.get(x,'?'), x)
         return pie_chart.render()
 
+    @cherrypy.tools.json_out()
+    def lapsper_data(self):
+        stats = self.lastStat
+        per_track_data = list(sorted(stats['lapsPerTrack'].items(), key=lambda x: x[1], reverse=True))
+        per_car_data = list(sorted(stats['lapsPerCar'].items(), key=lambda x: x[1], reverse=True))
+        per_combo_data = sorted(stats['lapsPerCombo'].values(), key=lambda x: x['lapCount'], reverse=True)
+        # There's more than we need, plus the car (can only be 1 for a combo)
+        # is inside a list
+        per_combo_data = list(map(lambda row: {
+            'lapCount': row['lapCount'],
+            'car': row['uicars'][0],
+            'track': row['uitrack'],
+        }, per_combo_data))
+        data = {
+            'lapsPerTrack': per_track_data,
+            'lapsPerCar': per_car_data,
+            'lapsPerCombo': per_combo_data,
+        }
+        
+        cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'
+        return data
+
     def statistics(self, servers=None, date_from=None, date_to=None, tracks=None, cars=None, curr_url=None):
 
         date_from = self.toTimestamp(date_from)
@@ -515,6 +537,15 @@ class StrackerPublicBase:
 
         return line_chart.render()
 
+    @cherrypy.tools.json_out()
+    def online_per_day_data(self):
+        stats = self.lastStat['numPlayersOnlinePerDay']
+        stats = list(map(lambda row: [ row['datetime'].date().isoformat(), row['count']], stats))
+        
+        cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'
+        return stats
+
+    @cherrypy.tools.json_out()
     def chart_data(self, lapid):
         lapid = int(lapid)
         ci = db.comparisonInfo([lapid],__sync=True)()
@@ -564,8 +595,9 @@ class StrackerPublicBase:
             output['positions'] = list(zip(x, y))
 
         cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'
-        return json.dumps(output)
+        return output
 
+    @cherrypy.tools.json_out()
     def track_data(self, track_id):
         td = self.trackAndCarDetails()['tracks']
         td = dict(map(lambda x: (x['acname'], x), td))
@@ -591,7 +623,7 @@ class StrackerPublicBase:
         else:
             raise cherrypy.HTTPError(404)
         cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'
-        return json.dumps(output)
+        return output
 
     def ltcomparison_svg(self, lapIds, labels=None, curr_url=None):
         if not config.config.HTTP_CONFIG.enable_svg_generation:

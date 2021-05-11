@@ -180,6 +180,8 @@ class StrackerPublic(http_server_base.StrackerPublicBase):
 
     chart_data = cherrypy.expose(cherrypy.tools.caching(delay=3600)(http_server_base.StrackerPublicBase.chart_data))
     track_data = cherrypy.expose(cherrypy.tools.caching(delay=3600)(http_server_base.StrackerPublicBase.track_data))
+    lapsper_data = cherrypy.expose(cherrypy.tools.caching(delay=1)(http_server_base.StrackerPublicBase.lapsper_data))
+    online_per_day_data = cherrypy.expose(cherrypy.tools.caching(delay=1)(http_server_base.StrackerPublicBase.online_per_day_data))
 
     def isAdmin(self):
         if (config.config.HTTP_CONFIG.admin_username != "" and
