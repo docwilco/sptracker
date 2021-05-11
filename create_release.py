@@ -18,9 +18,11 @@ import zipfile
 import glob
 import os
 import os.path
+import pathlib
 import shutil
 import subprocess
 import sys
+import time
 
 exec(open("release_settings.py").read())
 
@@ -112,20 +114,30 @@ subprocess.run(["virtualenv", "env/windows"], check=True, universal_newlines=Tru
 exec(open("env/windows/Scripts/activate_this.py").read())
 
 if not linux_only:
-    # Install/upgrade packages
-    subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "bottle"], check=True, universal_newlines=True)
-    subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "cherrypy"], check=True, universal_newlines=True)
-    subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "psycopg2"], check=True, universal_newlines=True)
-    subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "python-dateutil"], check=True, universal_newlines=True)
-    subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "wsgi-request-logger"], check=True, universal_newlines=True)
-    subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "simplejson"], check=True, universal_newlines=True)
-    subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "pyinstaller"], check=True, universal_newlines=True)
-    subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "PySide2"], check=True, universal_newlines=True)
-    # Since this downloads the entire file and is version locked, don't do it if already installed
-    if (not os.path.isdir(r"env\windows\Lib\site-packages\apsw-3.35.4.post1-py3.9.egg-info")):
-        subprocess.run(["env\windows\Scripts\pip.exe", "install", "https://github.com/rogerbinns/apsw/releases/download/3.35.4-r1/apsw-3.35.4-r1.zip",
-                        "--global-option=fetch", "--global-option=--version", "--global-option=3.35.4", "--global-option=--all",
-                        "--global-option=build", "--global-option=--enable-all-extensions"], check=True,universal_newlines=True)
+    do_install = True
+    lastcheck = pathlib.Path('env') / 'windows' / 'lastcheck'
+    try:
+        # only do the install/upgrade if the age is higher than a day
+        do_install = (time.time() - lastcheck.stat().st_mtime) > 86400
+    except:
+        # or if it hasn't been done yet
+        pass
+    if do_install:
+        # Install/upgrade packages
+        subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "bottle"], check=True, universal_newlines=True)
+        subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "cherrypy"], check=True, universal_newlines=True)
+        subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "psycopg2"], check=True, universal_newlines=True)
+        subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "python-dateutil"], check=True, universal_newlines=True)
+        subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "wsgi-request-logger"], check=True, universal_newlines=True)
+        subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "simplejson"], check=True, universal_newlines=True)
+        subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "pyinstaller"], check=True, universal_newlines=True)
+        subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "PySide2"], check=True, universal_newlines=True)
+        # Since this downloads the entire file and is version locked, don't do it if already installed
+        if (not os.path.isdir(r"env\windows\Lib\site-packages\apsw-3.35.4.post1-py3.9.egg-info")):
+            subprocess.run(["env\windows\Scripts\pip.exe", "install", "https://github.com/rogerbinns/apsw/releases/download/3.35.4-r1/apsw-3.35.4-r1.zip",
+                            "--global-option=fetch", "--global-option=--version", "--global-option=3.35.4", "--global-option=--all",
+                            "--global-option=build", "--global-option=--enable-all-extensions"], check=True,universal_newlines=True)
+        lastcheck.touch()
 
 if build_ptracker:
 
