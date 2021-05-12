@@ -56,7 +56,7 @@ fetch('lapsper_data')
                 text: 'Track and Car usage'
             },
             subtitle: {
-                text: '% laps driven'
+                text: 'Click to drill down'
             },
             series: [{
                 type: 'sunburst',
@@ -111,18 +111,30 @@ fetch('lapsper_data')
                     while (group.id != 'tracks' && group.id != 'cars') {
                         group = series.chart.get(group.parent);
                     }
-                    const total = group.value;
+                    // To avoid confusion
+                    const top_level = group;
+                    const total = top_level.value;
                     const percentage = point.value / total;
-                    const val = (percentage === undefined) ? point.value : (percentage * 100).toFixed(1) + '%';
+                    const val = (percentage === undefined) ? point.value : (percentage * 100).toFixed(1) + '% of total laps driven';
                     // cars and tracks need parent & own names flipped from eachother
-                    // and only the outer rim needs both
-                    if (group.id == 'cars' && point.parent != 'cars') {
-                        return parent_name + ' @ ' + point.name + '<br>' + val;
-                    } else if (group.id == 'tracks' && point.parent != 'tracks') {
-                        return point.name + ' @ ' + parent_name + '<br>' + val;
+                    // and only the outer ring needs both
+                    // for the outer ring, the top level group id is not the parent
+                    let label;
+                    if (point.parent != top_level.id) {
+                        let car, track;
+                        if (top_level.id == 'cars') {
+                            car = parent_name;
+                            track = point.name;
+                        } else {
+                            car = point.name;
+                            track = parent_name;
+                        }
+                        label = point.name + ' @ ' + parent_name;
                     } else {
-                        return point.name + '<br>' + val;
+                        // middle ring
+                        label = point.name;
                     }
+                    return label + '<br>' + val;
                 },
             },
 
