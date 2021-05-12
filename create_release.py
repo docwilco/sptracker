@@ -133,7 +133,9 @@ if not linux_only:
         subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "pyinstaller"], check=True, universal_newlines=True)
         subprocess.run(["env\windows\Scripts\pip.exe", "install", "--upgrade", "PySide2"], check=True, universal_newlines=True)
         # Since this downloads the entire file and is version locked, don't do it if already installed
-        if (not os.path.isdir(r"env\windows\Lib\site-packages\apsw-3.35.4.post1-py3.9.egg-info")):
+        try:
+            subprocess.run(["env\windows\Scripts\pip.exe", "show", "aspw"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except:
             subprocess.run(["env\windows\Scripts\pip.exe", "install", "https://github.com/rogerbinns/apsw/releases/download/3.35.4-r1/apsw-3.35.4-r1.zip",
                             "--global-option=fetch", "--global-option=--version", "--global-option=3.35.4", "--global-option=--all",
                             "--global-option=build", "--global-option=--enable-all-extensions"], check=True,universal_newlines=True)
@@ -197,8 +199,10 @@ ptracker_lib/stdlib64/CreateFileHook.dll""".split("\n")
                     # "--debug=bootloader",
                     "--windowed",
                     "--name", "ptracker", "--clean", "-y", "--onefile", 
-                    "--paths", f"{ac_install_dir}\\apps\python\system", "--additional-hooks-dir=stracker/pyinstaller-hooks",
-                    "--path", "stracker", "--path", "stracker/externals", "ptracker-server-dist.py"], check=True, universal_newlines=True)
+                    "--paths", f"{ac_install_dir}\\apps\python\system",
+                    "--path", "stracker", "--path", "stracker/externals",
+                    "ptracker-server-dist.py"],
+                   check=True, universal_newlines=True)
 
     def checksum(buffer):
         sign = buffer[:0x12] + buffer[(0x12+4):]
@@ -282,8 +286,6 @@ ptracker_lib/stdlib64/CreateFileHook.dll""".split("\n")
             + glob.glob("stracker/http_static/bootstrap/js/fileinput.min.js")
             + glob.glob("stracker/http_static/img/*.png")
             + glob.glob("stracker/http_static/jquery/jquery.min.js")
-            + glob.glob("stracker/http_static/pygal/svg.jquery.js")
-            + glob.glob("stracker/http_static/pygal/pygal-tooltips.js")
             )
 
     for f in files:
@@ -319,9 +321,12 @@ if build_stracker_windows or build_stracker_linux or build_stracker_packager:
 
     if build_stracker_windows:
         print("------------------- Building stracker.exe -------------------------------")
-        subprocess.run(["../env/windows/Scripts/pyinstaller.exe", "--name", "stracker", "--clean", "-y", "--onefile", "--exclude-module", "http_templates", "--hidden-import", "cherrypy.wsgiserver.wsgiserver3",
-                        "--hidden-import", "psycopg2", "--additional-hooks-dir=pyinstaller-hooks", "--path", "..", "--path", "externals", "stracker.py"],
-                        check=True, universal_newlines=True)
+        subprocess.run(["../env/windows/Scripts/pyinstaller.exe", "--name", "stracker",
+                        "--clean", "-y", "--onefile", "--exclude-module", "http_templates",
+                        "--hidden-import", "cherrypy.wsgiserver.wsgiserver3",
+                        "--hidden-import", "psycopg2", "--path", "..", "--path", "externals",
+                        "stracker.py"],
+                       check=True, universal_newlines=True)
         if os.path.exists('stracker-default.ini'):
             os.remove('stracker-default.ini')
         subprocess.run([r"dist\stracker.exe", "--stracker_ini", "stracker-default.ini"], universal_newlines=True)
@@ -343,7 +348,6 @@ if build_stracker_windows or build_stracker_linux or build_stracker_packager:
     http_data = (glob.glob("stracker/http_static/bootstrap/*/*") +
                  glob.glob("stracker/http_static/img/*.png") +
                  glob.glob("stracker/http_static/jquery/*.js") +
-                 glob.glob("stracker/http_static/pygal/*") +
                  glob.glob("stracker/http_static/stracker/js/graphs/*.js") +
                  glob.glob("stracker/http_templates/*.py"))
     for src in http_data:

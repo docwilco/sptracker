@@ -38,10 +38,6 @@ from ptracker_lib.dbgeneric import decompress
 from ptracker_lib.helpers import isProMode, format_time_ms, format_datetime, unixtime2datetime, datetime2unixtime, format_time, localtime2utc, utc2localtime, unixtime_now, format_time_s, setFormatUnits
 from ptracker_lib import read_ui_data
 
-import pygal # needed for pyinstaller
-from pygal import Line, Pie, DateLine, XY, Config, StackedLine
-from pygal.style import LightSolarizedStyle,LightStyle,CleanStyle
-
 import simplejson as json
 
 import bottle
@@ -79,11 +75,6 @@ from http_templates.tmpl_mainpage import mainPageTemplate
 from http_templates.tmpl_championship import championshipTemplate
 from http_templates.tmpl_statistics import statisticsTemplate
 
-pygalConfig = Config(style=CleanStyle,
-                     js=[],
-                     pretty_print=True,
-                     tooltip_border_radius=10,
-                     disable_xml_declaration=True)
 db = None
 
 class StrackerPublicBase:
@@ -301,14 +292,14 @@ class StrackerPublicBase:
                                         currgroups=groups,
                                         groups=allgroups,
                                         features=self.features())
-        return baseTemplate.render(base=r, pagination=(page, totalPages), src="lapstat", rootpage=self.rootpage, features=self.features(), pygal=False, curr_url=curr_url)
+        return baseTemplate.render(base=r, pagination=(page, totalPages), src="lapstat", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     def lapdetails(self, lapid, cmpbits=None, cmp_lapid=None, curr_url=None):
         lapid = int(lapid)
         cmpbits = cmpbits if cmpbits is None else int(cmpbits)
         details = db.lapDetails(__sync=True, lapid=lapid, withHistoryInfo=True)()
         r = lapDetailsTableTemplate.render(lapdetails=details, cmpbits=cmpbits, features=self.features(), http_server=self, cmp_lapid=cmp_lapid, curr_url=curr_url)
-        return baseTemplate.render(base=r, pagination=None, src="lapstat", rootpage=self.rootpage, features=self.features(), pygal=True, curr_url=curr_url)
+        return baseTemplate.render(base=r, pagination=None, src="lapstat", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     def sessionstat(self, track = "(all)", page = 0, start = None, stop = None, session_types = None, num_players = None, num_laps = None, curr_url=None):
         tracks = [dict(track="(all)",uitrack="(all)")] + sorted(db.alltracks(__sync=True)(), key=lambda x: x['uitrack'])
@@ -350,7 +341,7 @@ class StrackerPublicBase:
             r = sesStatTableTemplate.render(sesStatRes=[],
                                             tracks=tracks, currtrack=currtrack,
                                             features=self.features())
-        return baseTemplate.render(base=r, pagination=(page,totalPages), src="sesstat", rootpage=self.rootpage, features=self.features(), pygal=False, curr_url=curr_url)
+        return baseTemplate.render(base=r, pagination=(page,totalPages), src="sesstat", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     def sessiondetails(self, sessionid = None, playerInSessionId = None, curr_url=None):
         if not sessionid is None:
@@ -358,7 +349,7 @@ class StrackerPublicBase:
             res = db.sessionDetails(__sync=True, sessionid=sesId)()
             csres = db.csGetSeasons(__sync=True)()
             r = sesDetailsTemplate.render(s=res, features=self.features(), events=csres['events'], point_schemata=csres['point_schemata'], session_id=sesId)
-            return baseTemplate.render(base=r, pagination=None, src="sesstat", rootpage=self.rootpage, features=self.features(), pygal=False, curr_url=curr_url)
+            return baseTemplate.render(base=r, pagination=None, src="sesstat", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
         elif not playerInSessionId is None:
             pisId = int(playerInSessionId)
             res = db.playerInSessionDetails(__sync=True, pisId=pisId)()
@@ -368,7 +359,7 @@ class StrackerPublicBase:
                 if c > res['sectorCount']:
                     res['sectorCount'] = c
             r = pisDetailsTemplate.render(res=res, features=self.features())
-            return baseTemplate.render(base=r, pagination=None, src="sesstat", rootpage=self.rootpage, features=self.features(), pygal=False, curr_url=curr_url)
+            return baseTemplate.render(base=r, pagination=None, src="sesstat", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     def players(self, search_pattern = "", page = 0, orderby = None, curr_url=None):
         page = int(page)
@@ -378,74 +369,18 @@ class StrackerPublicBase:
         res = db.getPlayers(__sync=True, limit=[page*nip+1, nip], searchPattern = search_pattern, orderby=orderby)()
         #acdebug("page=%d nip=%d count=%d", page, nip, res['count'])
         r = playersTemplate.render(res=res, search_pattern=search_pattern, features=self.features(), caller = "players")
-        return baseTemplate.render(base=r, pagination=(page, (res['count']+nip-1)//nip), src="players", rootpage=self.rootpage, features=self.features(), pygal=False, curr_url=curr_url)
+        return baseTemplate.render(base=r, pagination=(page, (res['count']+nip-1)//nip), src="players", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     def playerdetails(self, pid, curr_url=None):
         res = db.playerDetails(__sync=True, playerid=pid)()
         if self.isAdmin():
             res['groups'] = db.allgroups(__sync=True)()
         r = plyDetailsTemplate.render(http_server=self, ply=res, features=self.features())
-        return baseTemplate.render(base=r, pagination=None, src="players", rootpage=self.rootpage, features=self.features(), pygal=False, curr_url=curr_url)
+        return baseTemplate.render(base=r, pagination=None, src="players", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     def mainpage(self, curr_url=None):
         r = mainPageTemplate.render(features=self.features())
-        return baseTemplate.render(base=r, pagination=None, src="main", rootpage=self.rootpage, features=self.features(), pygal=False, curr_url=curr_url)
-
-    def lapspertrack_svg(self, curr_url=None):
-        if not config.config.HTTP_CONFIG.enable_svg_generation:
-            return ""
-        stats = self.lastStat
-        pie_chart = Pie(pygalConfig)
-        pie_chart.title = 'Track usage (% laps driven)'
-        tl = stats['numLaps']
-        lapsPerTrack = sorted(stats['lapsPerTrack'].items(), key=lambda x: x[1], reverse=True)
-        valueToItem = {}
-        for t,nl in lapsPerTrack:
-            v = nl*100/tl
-            while v in valueToItem:
-                v -= 1e-9
-            valueToItem[v] = t
-            pie_chart.add(t, v)
-        pie_chart.value_formatter = lambda x, valueToItem=valueToItem: "%s: %.1f%%" % (valueToItem.get(x,'?'), x)
-        return pie_chart.render()
-
-    def lapspercar_svg(self, curr_url=None):
-        if not config.config.HTTP_CONFIG.enable_svg_generation:
-            return ""
-        stats = self.lastStat
-        pie_chart = Pie(pygalConfig)
-        pie_chart.title = 'Car usage (% laps driven)'
-        tl = stats['numLaps']
-        lapsPerTrack = sorted(stats['lapsPerCar'].items(), key=lambda x: x[1], reverse=True)
-        valueToItem = {}
-        for t,nl in lapsPerTrack:
-            v = nl*100/tl
-            while v in valueToItem:
-                v -= 1e-9
-            valueToItem[v] = t
-            pie_chart.add(t, v)
-        pie_chart.value_formatter = lambda x, valueToItem=valueToItem: "%s: %.1f%%" % (valueToItem.get(x,'?'), x)
-        return pie_chart.render()
-
-    def lapspercombo_svg(self, curr_url=None):
-        if not config.config.HTTP_CONFIG.enable_svg_generation:
-            return ""
-        stats = self.lastStat
-        pie_chart = Pie(pygalConfig)
-        pie_chart.title = 'Combo usage (% laps driven)'
-        tl = stats['numLaps']
-        lapsPerCombo = sorted(stats['lapsPerCombo'].items(), key=lambda x: x[1]['lapCount'], reverse=True)
-        valueToItem = {}
-        for t,info in lapsPerCombo:
-            nl = info['lapCount']
-            name = "+".join(info['cars']) + '@' + info['track']
-            v = nl*100/tl
-            while v in valueToItem:
-                v -= 1e-9
-            valueToItem[v] = name
-            pie_chart.add(name, v)
-        pie_chart.value_formatter = lambda x, valueToItem=valueToItem: "%s: %.1f%%" % (valueToItem.get(x,'?'), x)
-        return pie_chart.render()
+        return baseTemplate.render(base=r, pagination=None, src="main", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     @cherrypy.tools.json_out()
     def lapsper_data(self):
@@ -491,51 +426,7 @@ class StrackerPublicBase:
         self.lastStat = stats
         r = statisticsTemplate.render(stats=stats, currservers=servers, servers=allservers, date_from=date_from, date_to=date_to,
                                       currtracks=tracks, tracks=alltracks, currcars=cars, cars=allcars, http_server=self, features=self.features(), curr_url=curr_url)
-        return baseTemplate.render(base=r, pagination=None, src="stats", rootpage=self.rootpage, features=self.features(), pygal=True, curr_url=curr_url)
-
-    def serverstats_svg(self, curr_url=None):
-        if not config.config.HTTP_CONFIG.enable_svg_generation:
-            return ""
-        stats = self.lastStat
-        ppd = list(stats['numPlayersOnlinePerDay'])
-        x = []
-        y = []
-        major_x = []
-        idx = 0
-        lastLabel = None
-
-        if len(ppd) > 0:
-            minDate = min([x['datetime'].date() for x in ppd])
-            maxDate = max([x['datetime'].date() for x in ppd])
-
-            for i in range((maxDate-minDate).days+1):
-                d = minDate+datetime.timedelta(i)
-                if idx < len(ppd) and ppd[idx]['datetime'].date() == d:
-                    y.append(ppd[idx]['count'])
-                    idx += 1
-                else:
-                    y.append(0)
-                x.append(d)
-                if d.month != lastLabel:
-                    lastLabel = d.month
-                    major_x.append(d)
-                else:
-                    pass
-                #x.append("")
-            num_days = (maxDate-minDate).days+1
-        else:
-            num_days = 0
-        line_chart = DateLine(pygalConfig,
-                              fill=True,
-                              dots_size=1,
-                              x_label_rotation=35)
-        line_chart.title = 'Server usage over %d days' % num_days
-        line_chart.add('Drivers online', zip(x,y))
-        #line_chart.x_value_formatter = lambda d: d.isoformat()
-        #line_chart.x_labels = list(map(line_chart.x_value_formatter, x))
-        #line_chart.x_labels_major = list(map(line_chart.x_value_formatter, major_x))
-
-        return line_chart.render()
+        return baseTemplate.render(base=r, pagination=None, src="stats", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     @cherrypy.tools.json_out()
     def online_per_day_data(self):
@@ -625,95 +516,6 @@ class StrackerPublicBase:
         cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'
         return output
 
-    def ltcomparison_svg(self, lapIds, labels=None, curr_url=None):
-        if not config.config.HTTP_CONFIG.enable_svg_generation:
-            return ""
-        lapIds = lapIds.strip().split(",")
-        lapIds = list(map(lambda x: int(x), lapIds))
-        if not labels is None:
-            # dict will deduplicate, last label for same lap wins
-            labels = dict(zip(lapIds,labels.split(",")))
-        # dict again deduplicates, zip with array of None just to be
-        # able to make the dict. Better to use, IMO:
-        # lapIds = list(set(map(lambda x: int(x), lapIds))) & sort()
-        lapIds = OrderedDict( zip(lapIds, [None]*len(lapIds)) ).keys()
-        ci = db.comparisonInfo(lapIds,__sync=True)()
-        track = None
-        uitrack = None
-        tracksame = 1
-        car = None
-        carsame = 1
-        if len(ci) == 0:
-            return ""
-        for lapid in ci:
-            if track is None:
-                uitrack = ci[lapid]['uitrack']
-                track = ci[lapid]['track']
-            if uitrack != ci[lapid]['uitrack']:
-                tracksame = 0
-            if car is None:
-                car = ci[lapid]['uicar']
-            if car != ci[lapid]['uicar']:
-                carsame = 0
-        if tracksame and carsame:
-            title = "Lap Comparison %s @ %s" % (car,uitrack)
-        elif tracksame:
-            title = "Lap Comparison on %s" % uitrack
-        else:
-            title = "Lap Comparison (warning: different tracks!)"
-        line_chart = XY(pygalConfig,
-                        fill=False,
-                        dots_size=1,
-                        #interpolate='hermite',
-                        interpolation_precision=1,
-                        include_x_axis=True,
-                        x_title='Track Position [m]',
-                        y_title='Velocity [km/h]',
-                        title=title,
-                        legend_at_bottom = True,
-                        legend_font_size = 12,
-                        truncate_legend = 30,
-                        x_label_rotation = 45)
-        maxN = 1
-        length = None
-        #line_chart.title("Lap comparison"), ci[lapid]['uitrack']
-        for lapid in lapIds:
-            if not lapid in ci:
-                continue
-            st, wp, vel, nsp = decompress(ci[lapid]['historyinfo'])
-            v = map(lambda x: 3.6*math.sqrt(x[0]**2+x[1]**2+x[2]**2), vel)
-            l = ci[lapid]['length']
-            if not l is None:
-                nsp = list(map(lambda x: min(l, max(0, x*l)), nsp))
-                if length is None:
-                    length = l
-            if not labels is None:
-                lb = labels[lapid] + ":"
-            else:
-                lb = ""
-            if carsame:
-                cb = ""
-            else:
-                cb = ", %s" % ci[lapid]['uicar']
-            legend = "%s%s by %s%s" % (lb, format_time(ci[lapid]['laptime'], False), ci[lapid]['player'], cb)
-            line_chart.add(legend, zip(nsp, v))
-            maxN = max(len(nsp), maxN)
-        if tracksame:
-            td = self.trackAndCarDetails()['tracks']
-            td = dict(map(lambda x: (x['acname'], x), td))
-            self.trackmap(track=track, curr_url=None)
-            if track in td and td[track]['mapdata']:
-                mapdata = pickle.loads(td[track]['mapdata'])
-                if 'sections' in mapdata:
-                    section_labels = []
-                    for section in mapdata['sections']:
-                        section_labels.append(dict(label=section['text'] + " in", value=section['in'] * length))
-                        section_labels.append(dict(label=section['text'] + " out", value=section['out'] * length))
-                    line_chart.x_labels = section_labels
-        precision = max(1, min(10, int(1600/maxN)))
-        line_chart.interpolation_precision = precision
-        return line_chart.render()
-
     def championship(self, cs_id=None, event_id=None, event_session_id=None, point_schema_id=None, team_score=0, curr_url=None):
         if not cs_id is None: cs_id = int(cs_id)
         if not event_id is None: event_id = int(event_id)
@@ -736,74 +538,7 @@ class StrackerPublicBase:
                                         event_id=event_id,
                                         features=self.features(),
                                         team_score=team_score)
-        return baseTemplate.render(base=r, pagination=None, src="cs", rootpage=self.rootpage, features=self.features(), pygal=False, curr_url=curr_url)
-
-    def ltcomparisonmap_svg(self, lapIds, labels=None, curr_url=None):
-        if not config.config.HTTP_CONFIG.enable_svg_generation:
-            return ""
-        lapIds = lapIds.strip().split(",")
-        lapIds = list(map(lambda x: int(x), lapIds))
-        if not labels is None:
-            labels = dict(zip(lapIds,labels.split(",")))
-        lapIds = OrderedDict( zip(lapIds, [None]*len(lapIds)) ).keys()
-        ci = db.comparisonInfo(lapIds,__sync=True)()
-        if len(ci) == 0:
-            return ""
-        track = None
-        tracksame = 1
-        car = None
-        carsame = 1
-        for lapid in ci:
-            if track is None:
-                uitrack = ci[lapid]['uitrack']
-                track = ci[lapid]['track']
-            if track != ci[lapid]['track']:
-                tracksame = 0
-            if car is None:
-                car = ci[lapid]['uicar']
-            if car != ci[lapid]['uicar']:
-                carsame = 0
-        if tracksame and carsame:
-            title = "Lap Comparison %s @ %s" % (car,uitrack)
-        elif tracksame:
-            title = "Lap Comparison on %s" % uitrack
-        else:
-            raise RuntimeError
-        td = self.trackAndCarDetails()['tracks']
-        td = dict(map(lambda x: (x['acname'], x), td))
-        self.trackmap(track=track, curr_url=curr_url)
-        if track in td and td[track]['mapdata']:
-            mapdata = pickle.loads(td[track]['mapdata'])
-            scale = 1./float(mapdata['ini']['scale'])
-            offsetx = float(mapdata['ini']['xoffset'])
-            offsetz = float(mapdata['ini']['zoffset'])
-            width = float(mapdata['ini']['width'])
-            height = float(mapdata['ini']['height'])
-            map_chart = XY( pygalConfig,
-                            fill=False,
-                            show_dots=False,
-                            inverse_y_axis=True,
-                            #interpolate='hermite',
-                            include_x_axis=True,
-                            title=title,
-                            show_legend = False,
-                            width = width,
-                            height= height,
-                            show_y_labels=False,
-                            show_minor_x_labels=False,
-                            background_image = "trackmap?track=%s" % track)
-            for lapid in lapIds:
-                if not lapid in ci:
-                    continue
-                st, wp, vel, nsp = decompress(ci[lapid]['historyinfo'])
-                x = [max(0, min(width, (x[0]+offsetx)*scale)) for x in wp]
-                y = [max(0, min(height, (x[2]+offsetz)*scale)) for x in wp]
-                map_chart.add('', list(zip(x, y)))
-            map_chart.add('', [(0,0)])
-            map_chart.add('', [(width, height)])
-            return map_chart.render()
-        else:
-            return ""
+        return baseTemplate.render(base=r, pagination=None, src="cs", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     def carbadge(self, car, curr_url=None):
         with self.trackAndCarLock:
@@ -882,7 +617,7 @@ class StrackerPublicBase:
                 return (content, ctype, False)
             else:
                 content = None
-                for d in ['http_static', 'http_static/bootstrap', 'http_static/img', 'http_static/jquery', 'http_static/pygal']:
+                for d in ['http_static', 'http_static/bootstrap', 'http_static/img', 'http_static/jquery']:
                     p = os.path.join(self.static_base_dir, d, item)
                     if os.path.exists(p):
                         header = headers[p[-3:]]

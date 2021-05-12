@@ -26,10 +26,17 @@ else
     pip install --upgrade wsgi-request-logger
     pip install --upgrade simplejson
     pip install --upgrade pyinstaller
+    # This is so incredibly slow, and no way to auto-upgrade
+    if ! pip show apsw
+    then
+        pip install https://github.com/rogerbinns/apsw/releases/download/3.35.4-r1/apsw-3.35.4-r1.zip \
+            --global-option=fetch --global-option=--version --global-option=3.35.4 --global-option=--all \
+            --global-option=build --global-option=--enable-all-extensions
+    fi
     touch env/linux/lastcheck
 fi
 
-pyinstaller --clean -y -s --exclude-module http_templates --hidden-import cherrypy.wsgiserver.wsgiserver3 --hidden-import psycopg2 --additional-hooks-dir=$PWD/pyinstaller-hooks/ stracker.py
+pyinstaller --clean -y -s --exclude-module http_templates --hidden-import cherrypy.wsgiserver.wsgiserver3 --hidden-import psycopg2 stracker.py
 
 mv dist/stracker dist/stracker_linux_x86
 tar cvzf stracker_linux_x86.tgz -C dist stracker_linux_x86

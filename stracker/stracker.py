@@ -84,7 +84,6 @@ import ptracker_lib
 import stracker_lib
 from stracker_lib import config
 from stracker_lib import logger
-import pygal
 
 def backend_factory():
     if config.config.DATABASE.database_type == config.config.DBTYPE_SQLITE3:

@@ -50,10 +50,6 @@ baseTemplate = SimpleTemplate("""
     <script type="text/javascript" src="/bootstrap/js/bootstrap-multiselect.js"></script>
     <script type="text/javascript" src="/bootstrap/js/bootstrap-datepicker.js"></script>
     <script src="/bootstrap/js/fileinput.min.js" type="text/javascript"></script>
-% if pygal:
-    <script type="text/javascript" src="/pygal/svg.jquery.js"></script>
-    <script type="text/javascript" src="/pygal/pygal-tooltips.min.js"></script>
-% end
 
     % title_texts = dict(lapstat="Laps", sesstat="Sessions", players="Drivers", cs="Championships", stats="Statistics", livemap="Live Map", banlist="Ban List", groups="Groups", admin="General Admin", log="Log")
     % title = title_texts.get(src, "stracker")

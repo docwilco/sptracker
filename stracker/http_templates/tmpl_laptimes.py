@@ -774,14 +774,6 @@ function updateComparison() {
     </div>
     <div class="row">
         <hr>
-        <div class="col-md-8 col-md-offset-0">
-            <div>
-                {{!http_server.ltcomparison_svg(lapIds=",".join(map(str, lapIds)), labels=",".join(legends), curr_url=curr_url) }}
-            </div>
-            <div>
-                {{!http_server.ltcomparisonmap_svg(lapIds=",".join(map(str, lapIds)), labels=",".join(legends), curr_url=curr_url) }}
-            </div>
-        </div>
         <div class="col-md-4">
             <div class="col-md-12 panel panel-info">
                 <div class="panel-heading">Select comparison laps</div>

@@ -136,15 +136,9 @@ class StrackerPublic(http_server_base.StrackerPublicBase):
             'tools.staticdir.on' : True,
             'tools.staticdir.dir' : os.path.abspath(os.path.join(http_server_base.static_base_dir, "http_static", "bootstrap")),
         },
-        '/pygal' : {
+        '/stracker' : {
             'tools.expires.on'    : True,
             'tools.expires.secs'  : 3600*24*7,
-            'tools.staticdir.on' : True,
-            'tools.staticdir.dir' : os.path.abspath(os.path.join(http_server_base.static_base_dir, "http_static", "pygal")),
-        },
-        '/stracker' : {
-#            'tools.expires.on'    : True,
-#            'tools.expires.secs'  : 3600*24*7,
             'tools.staticdir.on' : True,
             'tools.staticdir.dir' : os.path.abspath(os.path.join(http_server_base.static_base_dir, "http_static", "stracker")),
         }
@@ -168,13 +162,7 @@ class StrackerPublic(http_server_base.StrackerPublicBase):
     playerdetails = cherrypy.expose(add_url(cherrypy.tools.caching(delay=60)(http_server_base.StrackerPublicBase.playerdetails)))
     mainpage = cherrypy.expose(add_url(cherrypy.tools.caching(delay=3600)(http_server_base.StrackerPublicBase.mainpage)))
     statistics = cherrypy.expose(add_url(cherrypy.tools.caching(delay=3600)(http_server_base.StrackerPublicBase.statistics)))
-    lapspertrack_svg = cherrypy.expose(add_url(cherrypy.tools.caching(delay=3600)(http_server_base.StrackerPublicBase.lapspertrack_svg)))
-    lapspercar_svg = cherrypy.expose(add_url(cherrypy.tools.caching(delay=3600)(http_server_base.StrackerPublicBase.lapspercar_svg)))
-    serverstats_svg = cherrypy.expose(add_url(cherrypy.tools.caching(delay=3600)(http_server_base.StrackerPublicBase.serverstats_svg)))
-    lapspercombo_svg = cherrypy.expose(add_url(cherrypy.tools.caching(delay=3600)(http_server_base.StrackerPublicBase.lapspercombo_svg)))
-    ltcomparison_svg = cherrypy.expose(add_url(cherrypy.tools.caching(delay=300)(http_server_base.StrackerPublicBase.ltcomparison_svg)))
     championship = cherrypy.expose(add_url(cherrypy.tools.caching(delay=300)(http_server_base.StrackerPublicBase.championship)))
-    ltcomparisonmap_svg = cherrypy.expose(add_url(cherrypy.tools.caching(delay=300)(http_server_base.StrackerPublicBase.ltcomparisonmap_svg)))
     carbadge = cherrypy.expose(add_url(cherrypy.tools.caching(delay=10)(http_server_base.StrackerPublicBase.carbadge)))
     trackmap = cherrypy.expose(add_url(cherrypy.tools.caching(delay=10)(http_server_base.StrackerPublicBase.trackmap)))
 
@@ -264,7 +252,7 @@ class StrackerPublic(http_server_base.StrackerPublicBase):
         r = livemapTemplate.render(server=server, servers=servers, key=streaming_support.new_key(),
                                    track_image = track_image, width=width, height=height,
                                    scale=scale, offsetx=offsetx, offsety=offsetz, features=self.features())
-        return baseTemplate.render(base=r, pagination=None, src="livemap", rootpage=self.rootpage, features=self.features(), pygal=True, curr_url=curr_url)
+        return baseTemplate.render(base=r, pagination=None, src="livemap", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
 
     @cherrypy.expose
@@ -444,7 +432,7 @@ class StrackerAdmin(StrackerPublic):
         nip = self.itemsPerPage
         res = db.getPlayers(__sync=True, limit=[page*nip+1, nip], searchPattern = search_pattern, inBanList=True)()
         r = playersTemplate.render(res=res, search_pattern=search_pattern, features=self.features(), caller = "banlist")
-        return baseTemplate.render(base=r, pagination=(page, (res['count']+nip-1)//nip), src="banlist", rootpage=self.rootpage, features=self.features(), pygal=False, curr_url=curr_url)
+        return baseTemplate.render(base=r, pagination=(page, (res['count']+nip-1)//nip), src="banlist", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     @cherrypy.expose
     @add_url
@@ -468,7 +456,7 @@ class StrackerAdmin(StrackerPublic):
         nip = self.itemsPerPage
         res = db.getPlayers(__sync=True, limit=[page*nip+1, nip], group_id=group_id, include_groups=True)()
         r = groupsTemplate.render(res=res, group_id=group_id, features=self.features())
-        return baseTemplate.render(base=r, pagination=(page,(res['count']+nip-1)//nip), src="groups", rootpage=self.rootpage, features=self.features(), pygal=False, curr_url=curr_url)
+        return baseTemplate.render(base=r, pagination=(page,(res['count']+nip-1)//nip), src="groups", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     @cherrypy.expose
     @add_url
@@ -534,7 +522,7 @@ class StrackerAdmin(StrackerPublic):
         if not ps_id is None: ps_id = int(ps_id)
         csRes = db.csGetSeasons(__sync=True, cs_id=None)()
         r = pointSchemaTemplate.render(point_schemata=csRes['point_schemata'], ps_id=ps_id, features=self.features())
-        return baseTemplate.render(base=r, pagination=None, src="cs", rootpage=self.rootpage, features=self.features(), pygal=False, curr_url=curr_url)
+        return baseTemplate.render(base=r, pagination=None, src="cs", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     @cherrypy.expose
     @add_url
@@ -624,7 +612,7 @@ class StrackerAdmin(StrackerPublic):
         self.resetTrackAndCarDetails()
         res = self.trackAndCarDetails()
         r = generalAdminTemplate.render(res=res, features=self.features())
-        return baseTemplate.render(base=r, pagination=None, src="admin", rootpage=self.rootpage, features=self.features(), pygal=False, curr_url=curr_url)
+        return baseTemplate.render(base=r, pagination=None, src="admin", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     @cherrypy.expose
     @add_url
@@ -679,7 +667,7 @@ class StrackerAdmin(StrackerPublic):
             server = config.config.STRACKER_CONFIG.server_name
         limit = int(limit)
         r = logTemplate.render(key=streaming_support.new_key(), limit=limit, server=server, servers=servers, level=level)
-        return baseTemplate.render(base=r, pagination=None, src="log", rootpage=self.rootpage, features=self.features(), pygal=False, curr_url=curr_url)
+        return baseTemplate.render(base=r, pagination=None, src="log", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     @cherrypy.expose
     @add_url
@@ -806,7 +794,7 @@ class StrackerAdmin(StrackerPublic):
         res = db.filterChat(__sync=True, server=server, startTime=date_from_ts, endTime=date_to_ts, limit=[nip*page+1, nip])()
         r = chatlogTemplate.render(server=server, servers=servers, date_from=date_from, date_to=date_to, messages=res['messages'])
         totalPages=(res['totalCount']+nip-1)//nip
-        return baseTemplate.render(base=r, pagination=[page, totalPages], src="log", rootpage=self.rootpage, features=self.features(), pygal=False, curr_url=curr_url)
+        return baseTemplate.render(base=r, pagination=[page, totalPages], src="log", rootpage=self.rootpage, features=self.features(), curr_url=curr_url)
 
     @cherrypy.expose
     @add_url
@@ -853,45 +841,6 @@ class StrackerAdmin(StrackerPublic):
             acerror(traceback.format_exc())
             return json.dumps({'error': 'error during processing'})
         return json.dumps({})
-
-    @cherrypy.expose
-    @add_url
-    def server_stats(self, curr_url=None):
-        from ptracker_lib.ps_protocol import globalConnMon,ProtocolHandler
-        def rid2str(rid):
-            for k in ProtocolHandler.__dict__:
-                if not k[:3] in ["REQ","ANS"]:
-                    continue
-                if getattr(ProtocolHandler, k) == rid:
-                    return k
-            return "?"
-        chart = StackedLine(
-             http_server_base.pygalConfig,
-             fill=True,
-             dots_size=0,
-             #interpolate='', #'cubic',
-             include_x_axis=True,
-             x_title='Time [ms]',
-             y_title='Sent bytes/seconds',
-             title="server send traffic",
-             legend_at_bottom = True,
-             legend_font_size = 12,
-             truncate_legend = 30)
-        t0 = time.time()
-        t,bw = globalConnMon.traffic_send(5., 120., t0, [254,255], [255])
-        chart.add("html sent total", bw)
-        t,bw = globalConnMon.traffic_rcv(5., 120., t0, [254,255], [255])
-        chart.add("html rcv total", bw)
-        t,bw = globalConnMon.traffic_send(5., 120., t0, range(255), range(9))
-        chart.add("old prot sent total", bw)
-        t,bw = globalConnMon.traffic_rcv(5., 120., t0, range(255), range(9))
-        chart.add("old prot rcv total", bw)
-        t,bw = globalConnMon.traffic_send(5., 120., t0, range(255), range(9,254))
-        chart.add("new prot sent total", bw)
-        t,bw = globalConnMon.traffic_rcv(5., 120., t0, range(255), range(9,254))
-        chart.add("new prot rcv total", bw)
-
-        return chart.render()
 
     @cherrypy.expose
     @add_url
