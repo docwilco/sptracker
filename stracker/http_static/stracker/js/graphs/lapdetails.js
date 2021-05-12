@@ -58,6 +58,16 @@ const chart = Highcharts.chart('velocity-over-distance', {
     },
     plotOptions: {
         series: {
+            events: {
+                hide: function(e) {
+                    trackMap.series[this.index].update({ enableMouseTracking: false });
+                    trackMap.series[this.index + this.chart.series.length].hide();
+                },
+                show: function(e) {
+                    trackMap.series[this.index].update({ enableMouseTracking: true });
+                    trackMap.series[this.index + this.chart.series.length].show();
+                },
+            },
             point: {
                 events: {
                     mouseOver: function(e) {
@@ -85,12 +95,14 @@ const trackMap = Highcharts.mapChart('track-map', {
         // Setting to null is the only way to remove the title
         text: null,
     },
+    legend: {
+        enabled: false,
+    },
     mapNavigation: {
         enabled: true,
     },
     plotOptions: {
         mappoint: {
-            showInLegend: false,
             marker: {
                 enabled: false,
             }
@@ -160,7 +172,6 @@ function drawCharts(results) {
     results.forEach(result => {
         if (result.status == "fulfilled") {
             lap = result.value;
-            lap.prefix = lap.lap_id in labels ? labels[lap.lap_id].concat(':') : "";
             lapData.push(lap);
         }
     });
@@ -198,10 +209,17 @@ function drawCharts(results) {
     let mapLineSeries = [];
     lapData.forEach((lap, index) => {
         let suffix = carsame ? "" : lap.car;
-        let label = `${lap.prefix}${lap.laptime} by ${lap.player}${suffix}`;
+        let lap_type = lap.lap_id in labels ? labels[lap.lap_id] : "";
+        let prefix = lap_type == "" ? "" : lap_type + ": ";
+        let label = `${prefix}${lap.laptime} by ${lap.player}${suffix}`;
+        // By default only show the Current lap and the overall
+        // server Best. The current lap _could_ be Personal Best,
+        // Session Best, or Personal Session Best.
+        const visible = lap_type == 'Server Best' || lap.lap_id == lapIDs[0];
         series.push({
             name: label,
-            data: lap.velocities
+            data: lap.velocities,
+            visible: visible,
         });
         let positions = [];
         // SVG lines start with M x y (move to x,y), and then have L x y (line to x,y)
@@ -219,7 +237,8 @@ function drawCharts(results) {
         mapPointSeries.push({
             type: 'mappoint',
             name: label,
-            data: positions
+            data: positions,
+            enableMouseTracking: visible,
         });
         mapLineSeries.push({
             type: 'mapline',
@@ -227,7 +246,8 @@ function drawCharts(results) {
             color: chart.options.colors[index],
             data: [{
                 path: path
-            }]
+            }],
+            visible: visible,
         })
     });
     lapData.forEach(lap => {});
@@ -237,6 +257,7 @@ function drawCharts(results) {
         },
         series: series
     }, true, true);
+
     let mapSeries = mapPointSeries.concat(mapLineSeries);
     trackMap.update({
         series: mapSeries

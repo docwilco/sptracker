@@ -486,7 +486,16 @@ be static on a per lap basis, for caching.
                     </button>
                 </div>
 % else:
-                <div class="col-md-4 col-md-offset-8">
+                <div class="col-md-4 col-md-offset-4"> 
+                    <form>
+                        <a data-toggle="tooltip" title="Save this lap for manual comparison. When visiting another lap's detail page, you get the comparison to this lap. Cookies have to be enabled for this."
+                            class="form-control btn btn-sm btn-primary" href="lapdetails_store_lapid?lapid={{!("%d" % lapdetails['lapid'])}}"
+                            role="button">
+                            Manual compare
+                        </a>
+                    </form>
+                </div>
+                <div class="col-md-4">
                     <button class="form-control btn btn-sm btn-primary" onclick="window.history.back()">
                         Back
                     </button>
@@ -709,119 +718,32 @@ function confirmDBChangeBeforeLink(l, msg)
     </div>
 % else:
 %   lapIds = [lapdetails['lapid']]
-%   legends = ["C"]
-%   if cmpbits is None:
-%     if not cmp_lapid is None and cmp_lapid != lapdetails['lapid']:
-%        cmpbits=16
-%     else:
-%        cmpbits=4|8
-%     end
-%   end
-%   if lapdetails["driversBestValidSessionLapId"] and cmpbits & 1:
-%     lapIds.append(lapdetails["driversBestValidSessionLapId"])
-%     legends.append("PSB")
-%   end
-%   if lapdetails["bestValidSessionLapId"] and cmpbits & 2:
-%     lapIds.append(lapdetails["bestValidSessionLapId"])
-%     legends.append("SB")
-%   end
-%   if lapdetails["driversBestValidServerLapId"] and cmpbits & 4:
-%     lapIds.append(lapdetails["driversBestValidServerLapId"])
-%     legends.append("PB")
-%   end
-%   if lapdetails["bestValidServerLapId"] and cmpbits & 8:
-%     lapIds.append(lapdetails["bestValidServerLapId"])
-%     legends.append("B")
-%   end
-%   if not cmp_lapid is None and cmpbits & 16:
+%   legends = ["Current"]
+%   lapIds.append(lapdetails["driversBestValidSessionLapId"])
+%   legends.append("Personal Session Best")
+%   lapIds.append(lapdetails["bestValidSessionLapId"])
+%   legends.append("Session Best")
+%   lapIds.append(lapdetails["driversBestValidServerLapId"])
+%   legends.append("Personal Best")
+%   lapIds.append(lapdetails["bestValidServerLapId"])
+%   legends.append("Server Best")
+%   if cmp_lapid is not None:
 %     lapIds.append(cmp_lapid)
-%     legends.append("M")
+%     legends.append("Manual Compare")
 %   end
     <script>
-function updateComparison() {
-    var cbPSB = document.getElementById("cbPSB").checked;
-    var cbSB = document.getElementById("cbSB").checked;
-    var cbPB = document.getElementById("cbPB").checked;
-    var cbB = document.getElementById("cbB").checked;
-    var cbM = document.getElementById("cbM").checked;
-%   import re
-%     nocmpbits_url = re.sub(r"([?&])cmpbits=\d+([?&])?", r"\g<1>", curr_url)
-%     if not '?' in nocmpbits_url:
-%        nocmpbits_url += "?"
-%     elif not nocmpbits_url[-1] in ['?', '&']:
-%        nocmpbits_url += "&"
-%     end
-    var url = '{{!nocmpbits_url}}cmpbits=' + (cbPSB | (cbSB << 1) | (cbPB << 2) | (cbB << 3) | (cbM << 4)).toString();
-    window.location=url;
-    return false;
-}
     </script>
     <div class="row">
         <hr>
-        <div class="col-md-8 col-md-offset-0">
-            <div>
-                <div id="velocity-over-distance" style="width:100%; height:500px;"></div>
-                <div id="track-map" style="width:100%; height:700px;"></div>
-                <script>
-                    const velocityOverDistanceParameters = {
-                        lapIDs: [ {{",".join(map(str, lapIds))}} ],
-                        labels: {{! json.dumps(legends)}}
-                    };
-                </script>
-                <script src="/stracker/js/graphs/lapdetails.js"></script>
-            </div>
-        </div>
-    </div>
-    <div class="row">
-        <hr>
-        <div class="col-md-4">
-            <div class="col-md-12 panel panel-info">
-                <div class="panel-heading">Select comparison laps</div>
-                    <div class="panel-body">
-                        <form>
-                            <div class="checkbox">
-                                <label>
-                                    <input type="checkbox" {{!"checked" if cmpbits & 1 else ""}} id="cbPSB">
-                                    Personal Session Best (PSB)
-                                </label>
-                            </div>
-                            <div class="checkbox">
-                                <label>
-                                    <input type="checkbox" {{!"checked" if cmpbits & 2 else ""}} id="cbSB">
-                                    Session Best (SB)
-                                </label>
-                            </div>
-                            <div class="checkbox">
-                                <label>
-                                    <input type="checkbox" {{!"checked" if cmpbits & 4 else ""}} id="cbPB">
-                                    Personal Best (PB)
-                                </label>
-                            </div>
-                            <div class="checkbox">
-                                <label>
-                                    <input type="checkbox" {{!"checked" if cmpbits & 8 else ""}} id="cbB">
-                                    Server Best (B)
-                                </label>
-                            </div>
-                            <div class="checkbox {{!'disabled' if cmp_lapid is None or cmp_lapid == lapdetails['lapid'] else ''}}">
-                                <label>
-                                    <input {{!'disabled' if cmp_lapid is None or cmp_lapid == lapdetails['lapid'] else ''}} type="checkbox" {{!"checked" if cmpbits & 16 else ""}} id="cbM">
-                                    Manual Selection (M)
-                                </label>
-                            </div>
-                            <div class="btn-group btn-group-justified" role="group">
-                                <a class="btn btn-default" onclick="updateComparison()" role="button">Submit</button>
-                                <a data-toggle="tooltip" title="Save this lap for manual comparison. When visiting another lap's detail page, you get the comparison to this lap. Cookies have to be enabled for this."
-                                   class="btn btn-default" href="lapdetails_store_lapid?lapid={{!("%d" % lapdetails['lapid']) + ('&cmpbits=%d'%cmpbits if not cmpbits is None else'')}}"
-                                   role="button">
-                                    Manual compare
-                                </a>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div id="velocity-over-distance" style="width:100%; height:500px;"></div>
+        <div id="track-map" style="width:100%; height:700px;"></div>
+        <script>
+            const velocityOverDistanceParameters = {
+                lapIDs: [ {{",".join(map(str, lapIds))}} ],
+                labels: {{! json.dumps(legends)}}
+            };
+        </script>
+        <script src="/stracker/js/graphs/lapdetails.js"></script>
     </div>
 % end
 </div>
