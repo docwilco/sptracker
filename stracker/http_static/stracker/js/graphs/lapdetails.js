@@ -100,6 +100,9 @@ const trackMap = Highcharts.mapChart('track-map', {
     },
     mapNavigation: {
         enabled: true,
+        // mouse wheel zoom doesn't seem to work, but does capture
+        // the mouse wheel, preventing people from scrolling the page.
+        enableMouseWheelZoom: false,
     },
     plotOptions: {
         mappoint: {
