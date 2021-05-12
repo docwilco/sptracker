@@ -768,7 +768,7 @@ function updateComparison() {
                         labels: {{! json.dumps(legends)}}
                     };
                 </script>
-                <script src="/stracker/js/velocity_over_distance.js"></script>
+                <script src="/stracker/js/graphs/lapdetails.js"></script>
             </div>
         </div>
     </div>

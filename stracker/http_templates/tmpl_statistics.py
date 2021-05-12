@@ -224,7 +224,7 @@ function invalidateLaps() {
             <figure class="highcharts-figure">
                 <div id="server-usage"></div>
             </figure>
-            <script src="/stracker/js/server_usage.js"></script>
+            <script src="/stracker/js/graphs/server_usage.js"></script>
         </div>
         <div class="col-md-6">
 % def entry(key, conv=str):
@@ -277,7 +277,7 @@ function invalidateLaps() {
         <figure class="highcharts-figure">
             <div id="track-car-usage"></div>
         </figure>
-        <script src="/stracker/js/track_car_usage.js"></script>
+        <script src="/stracker/js/graphs/track_car_usage.js"></script>
     </div>
 </div>
 """)

@@ -344,7 +344,7 @@ if build_stracker_windows or build_stracker_linux or build_stracker_packager:
                  glob.glob("stracker/http_static/img/*.png") +
                  glob.glob("stracker/http_static/jquery/*.js") +
                  glob.glob("stracker/http_static/pygal/*") +
-                 glob.glob("stracker/http_static/stracker/js/*.js") +
+                 glob.glob("stracker/http_static/stracker/js/graphs/*.js") +
                  glob.glob("stracker/http_templates/*.py"))
     for src in http_data:
         tgt = src[len("stracker/"):]
