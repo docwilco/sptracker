@@ -447,12 +447,6 @@ The exporting module allows users to snag images and view fullscreen.
 <script src="https://code.highcharts.com/modules/accessibility.js"></script>
 <script src="https://code.highcharts.com/maps/modules/map.js"></script>
 
-<!--
-Papa Parse is for parsing CSV, since we want to have lap data for graphs
-be static on a per lap basis, for caching.
--->
-<script src="https://rawgit.com/mholt/PapaParse/master/papaparse.min.js"></script>
-
 <div class="container">
     <div class="row page-header">
         <div class="col-md-6"><img src="/img/banner.png" title="Logo Track" class="ACimg"></div>
@@ -731,22 +725,18 @@ function confirmDBChangeBeforeLink(l, msg)
 %     lapIds.append(cmp_lapid)
 %     legends.append("Manual Compare")
 %   end
-    <script>
-    </script>
-    <div class="row">
-        <hr>
-        <div id="velocity-over-distance" style="width:100%; height:500px;"></div>
-        <div id="track-map" style="width:100%; height:700px;"></div>
-        <script>
-            const velocityOverDistanceParameters = {
-                lapIDs: [ {{",".join(map(str, lapIds))}} ],
-                labels: {{! json.dumps(legends)}}
-            };
-        </script>
-        <script src="/stracker/js/graphs/lapdetails.js"></script>
-    </div>
-% end
+    <hr>
 </div>
+<div id="velocity-over-distance" style="width:100%; height:500px;"></div>
+<div id="track-map" style="width:100%; height:700px;"></div>
+<script>
+    const velocityOverDistanceParameters = {
+        lapIDs: [ {{",".join(map(str, lapIds))}} ],
+        labels: {{! json.dumps(legends)}}
+    };
+</script>
+<script src="/stracker/js/graphs/lapdetails.js"></script>
+% end
 <script>
 $('[data-toggle="tooltip"]').tooltip({
     'placement': 'top',

@@ -1,4 +1,70 @@
+// The chart syncing stuff is gleaned from:
+// https://jsfiddle.net/gh/get/library/pure/highcharts/highcharts/tree/master/samples/highcharts/demo/synchronized-charts
+
 const zip = (a, b) => a.map((k, i) => [k, b[i]]);
+
+/**
+ * In order to synchronize tooltips and crosshairs, override the
+ * built-in events with handlers defined on the parent element.
+ */
+['mousemove', 'touchmove', 'touchstart'].forEach(eventType => {
+    ['velocity-over-distance', 'track-map'].forEach(container => {
+        document.getElementById(container).addEventListener(
+            eventType,
+            function(e) {
+                var chart,
+                    point,
+                    i,
+                    event;
+                const charts = [];
+                for (i = 0; i < Highcharts.charts.length; i = i + 1) {
+                    chart = Highcharts.charts[i];
+                    charts[chart.renderTo.id] = chart;
+                }
+                chart = charts[container];
+                // Find coordinates within the chart
+                event = chart.pointer.normalize(e);
+                // Get the hovered point
+                let series;
+                if (container == 'track-map') {
+                    series = chart.series.filter(series => series.options.enableMouseTracking);
+                } else {
+                    series = chart.series.filter(series => series.visible);
+                }
+                point = chart.pointer.findNearestKDPoint(series, false, event);
+                if (point) {
+                    point.highlight(e);
+                    let otherChart;
+                    if (container == 'track-map') {
+                        otherChart = charts['velocity-over-distance'];
+                    } else {
+                        otherChart = charts['track-map'];
+                    }
+                    let otherSeries = otherChart.series[point.series.index];
+                    if (otherSeries) {
+                        let otherPoint = otherSeries.points[point.index];
+                        if (otherPoint) {
+                            otherPoint.highlight(e);
+                        }
+                    }
+                }
+            }
+        );
+    })
+});
+
+// This is needed to keep the tooltip on the other charts around.
+// Just happens to also stop the bug where resetting the zoom starts
+// a new zoom drag action (for 2 or more series, race condition?).
+Highcharts.Pointer.prototype.reset = function() {
+    return undefined;
+};
+
+Highcharts.Point.prototype.highlight = function(event) {
+    event = this.series.chart.pointer.normalize(event);
+    this.onMouseOver(); // Show the hover marker
+    this.series.chart.tooltip.refresh(this); // Show the tooltip
+};
 
 let lapIDs = velocityOverDistanceParameters.lapIDs;
 let labels = velocityOverDistanceParameters.labels;
@@ -27,8 +93,7 @@ function drawTrackImage() {
         let oldTrackImage = trackImage;
         setTimeout(() => oldTrackImage.destroy());
     }
-    console.log();
-    trackImage = trackMap.renderer.image(`https://stracker.drwil.co/trackmap?track=${trackData.id}`,
+    trackImage = trackMap.renderer.image(`trackmap?track=${trackData.id}`,
         lx,
         ty,
         rx - lx,
@@ -68,14 +133,6 @@ const chart = Highcharts.chart('velocity-over-distance', {
                     trackMap.series[this.index + this.chart.series.length].show();
                 },
             },
-            point: {
-                events: {
-                    mouseOver: function(e) {
-                        e.trigger = "hoverSync";
-                        trackMap.series[e.target.series.index].points[e.target.index].onMouseOver(e);
-                    }
-                }
-            }
         }
     },
     tooltip: {
@@ -117,8 +174,10 @@ const trackMap = Highcharts.mapChart('track-map', {
     },
     tooltip: {
         pointFormatter: function(tooltip) {
-            let speed = chart.series[this.series.index].points[this.index].y;
-            return `${speed} km/h`;
+            try {
+                let speed = chart.series[this.series.index].points[this.index].y;
+                return `${speed} km/h`;
+            } catch (e) {}
         }
     },
     xAxis: {
