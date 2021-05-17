@@ -269,6 +269,7 @@ function drawCharts(results) {
     let series = [];
     let mapPointSeries = [];
     let mapLineSeries = [];
+    let sectorDistances = [];
     lapData.forEach((lap, index) => {
         let suffix = carsame ? "" : lap.car;
         let lap_type = lap.lap_id in labels ? labels[lap.lap_id] : "";
@@ -280,9 +281,34 @@ function drawCharts(results) {
         const visible = lap_type == 'Server Best' || lap.lap_id == lapIDs[0];
         series.push({
             name: label,
-            data: lap.velocities,
+            data: zip(lap.normalizedSplinePositions, lap.velocities),
             visible: visible,
         });
+
+        // Determine sector split locations.
+        let sectorsTotal = 0;
+        let timesIter = lap.sampleTimes.entries();
+        let next = timesIter.next();
+        for (let [sectorIndex, sectorTime] of lap.sectors.entries()) {
+            if (sectorTime == null) {
+                continue;
+            }
+            sectorsTotal += sectorTime;
+            // skip through sample times until we find a time
+            // equal to or past the sector time
+            while (!next.done && next.value[1] < sectorsTotal) {
+                next = timesIter.next();
+            }
+            if (!next.done) {
+                if (!sectorDistances[sectorIndex]) {
+                    sectorDistances[sectorIndex] = [];
+                }
+                sectorDistances[sectorIndex].push(
+                    lap.normalizedSplinePositions[next.value[0]]
+                );
+            }
+        }
+
         let positions = [];
         // SVG lines start with M x y (move to x,y), and then have L x y (line to x,y)
         // for each segment. So we prime with an M, then add x y L for each point,
@@ -312,7 +338,20 @@ function drawCharts(results) {
             visible: visible,
         })
     });
-    lapData.forEach(lap => {});
+    let plotLines = [];
+    sectorDistances.forEach(sector => {
+        // different laps get different distances
+        // just use the average
+        let avg = sector.reduce((a, b) => a + b) / sector.length;
+        plotLines.push({
+            color: '#ff0000',
+            width: 1,
+            value: avg,
+        });
+    });
+    chart.xAxis[0].update({
+        plotLines: plotLines,
+    });
     chart.update({
         title: {
             text: title

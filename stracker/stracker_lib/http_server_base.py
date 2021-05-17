@@ -447,7 +447,7 @@ class StrackerPublicBase:
         st, wp, vel, nsp = decompress(ci[lapid]['historyinfo'])
         # Every item in vel is velocities in m/s for 3 axes, convert
         # to a single velocity in km/h, rounded to 1 decimal
-        v = map(lambda x: round(3.6 * math.sqrt(x[0]**2+x[1]**2+x[2]**2), 1), vel)
+        vel = list(map(lambda x: round(3.6 * math.sqrt(x[0]**2+x[1]**2+x[2]**2), 1), vel))
         if length is not None:
             # Not sure why the min/max is being done here. Obviously
             # to clamp the distance between 0 and end of track, but
@@ -456,6 +456,9 @@ class StrackerPublicBase:
             # Normalized Spline Position is a float in range 0.0 to 1.0
             # convert to meters.
             nsp = list(map(lambda x: round(x * length, 1), nsp))
+        sectors = ci[lapid]['sectors']
+        while sectors[len(sectors) - 1] is None:
+            sectors.pop()
         output = {
             'lap_id': lapid,
             'track': {
@@ -466,7 +469,10 @@ class StrackerPublicBase:
             'car': ci[lapid]['uicar'],
             'player': ci[lapid]['player'],
             'laptime': format_time(ci[lapid]['laptime'], False),
-            'velocities': list(zip(nsp, v)),
+            'sectors': ci[lapid]['sectors'],
+            'velocities': vel,
+            'sampleTimes': st,
+            'normalizedSplinePositions': nsp,
         }
         td = self.trackAndCarDetails()['tracks']
         td = dict(map(lambda x: (x['acname'], x), td))

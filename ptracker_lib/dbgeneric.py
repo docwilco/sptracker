@@ -1242,8 +1242,11 @@ class GenericBackend(DbSchemata):
             trackMapping = self.trackMapping(c)
             carMapping = self.carMapping(c)
             lapIds = ",".join(map(lambda x: str(x), lapIds))
+            # keep sectortime columns last, we use [-10:] as slice
             c.execute("""
-                SELECT Track, Car, LapTime, LapBinBlob.HistoryInfo, Lap.LapId, Length, Name
+                SELECT Track, Car, LapTime, LapBinBlob.HistoryInfo, Lap.LapId, Length, Name,
+                SectorTime0, SectorTime1, SectorTime2, SectorTime3, SectorTime4, SectorTime5,
+                SectorTime6, SectorTime7, SectorTime8, SectorTime9
                 FROM Lap NATURAL JOIN PlayerInSession NATURAL JOIN Session NATURAL JOIN Tracks NATURAL JOIN Cars NATURAL JOIN Players JOIN LapBinBlob ON (Lap.LapId = LapBinBlob.LapId)
                 WHERE Lap.LapId IN (%s)
             """ % lapIds)
@@ -1251,7 +1254,8 @@ class GenericBackend(DbSchemata):
             for a in c.fetchall():
                 if a[3] is None:
                     continue
-                res[a[4]] = dict(track=a[0], uitrack=trackMapping.get(a[0],a[0]), uicar=carMapping.get(a[1],a[1]), laptime=a[2], length=a[5], historyinfo=a[3], player=a[6])
+                sectors = list(map(lambda x: (x>0 and x<self.invalidSplit and int(x+0.5)) or None, a[-10:]))
+                res[a[4]] = dict(track=a[0], uitrack=trackMapping.get(a[0],a[0]), uicar=carMapping.get(a[1],a[1]), laptime=a[2], length=a[5], historyinfo=a[3], player=a[6], sectors=sectors)
             prof("ci total", t)
             return res
 
